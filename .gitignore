@@ -34,3 +34,4 @@ ENV/
 # Project specific
 outputs/
 experiments/
+finetunestudio.md
