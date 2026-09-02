@@ -1,0 +1,9 @@
+requirements.txt
+.gitignore
+src/__init__.py
+src/config.py
+src/dataset.py
+src/model.py
+src/train.py
+src/inference.py
+README.md
