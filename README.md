@@ -32,7 +32,7 @@ This project uses [`uv`](https://docs.astral.sh/uv/) for fast and reliable Pytho
 
 2. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/llm-finetuning-studio.git
+   git clone https://github.com/tahirkhan07/llm-finetuning-studio.git
    cd llm-finetuning-studio
    ```
 
