@@ -18,6 +18,11 @@ class TrainingEngine(ABC):
         self.log_path = os.path.join(self.log_dir, "training_log.json")
         
         os.makedirs(self.log_dir, exist_ok=True)
+        
+        # Save training configuration
+        config_path = os.path.join(self.log_dir, "config.json")
+        with open(config_path, "w") as f:
+            f.write(self.cfg.model_dump_json(indent=2))
 
     @abstractmethod
     def prepare(self) -> None:

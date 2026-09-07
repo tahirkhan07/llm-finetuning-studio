@@ -1,41 +1,40 @@
-import gradio as gr
-from app.ui import model_tab, dataset_tab, hardware_tab, training_tab, evaluation_tab, inference_tab, experiments_tab, settings_tab, export_tab
+import os
+from dotenv import load_dotenv
+load_dotenv()
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
-def build_app():
-    # A sleek dark theme with rich accent colors
-    custom_theme = gr.themes.Monochrome(
-        primary_hue="indigo",
-        secondary_hue="blue",
-        neutral_hue="slate",
-    ).set(
-        body_background_fill="*neutral_950",
-        block_background_fill="*neutral_900",
-        block_border_width="1px",
-        block_border_color="*neutral_800",
-        button_primary_background_fill="*primary_600",
-        button_primary_background_fill_hover="*primary_500",
-        slider_color="*primary_500"
-    )
+from app.api.routers import models, datasets, hardware, training, evaluation, inference, experiments, export, settings
 
-    with gr.Blocks(title="LLM Fine-Tuning Studio") as demo:
-        with gr.Row():
-            gr.Markdown("# 🚀 LLM Fine-Tuning Studio")
-        
-        gr.Markdown("A professional, modular desktop environment for crafting, evaluating, and serving fine-tuned Large Language Models.")
-        
-        settings_tab.build()
-        model_tab.build()
-        dataset_tab.build()
-        hardware_tab.build()
-        training_tab.build()
-        evaluation_tab.build()
-        inference_tab.build()
-        experiments_tab.build()
-        export_tab.build()
+app = FastAPI(title="LLM Fine-Tuning Studio API")
 
-    return demo, custom_theme
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(models.router, prefix="/api/models", tags=["models"])
+app.include_router(datasets.router, prefix="/api/datasets", tags=["datasets"])
+app.include_router(hardware.router, prefix="/api/hardware", tags=["hardware"])
+app.include_router(training.router, prefix="/api/training", tags=["training"])
+app.include_router(evaluation.router, prefix="/api/evaluate", tags=["evaluation"])
+app.include_router(inference.router, prefix="/api/inference", tags=["inference"])
+app.include_router(experiments.router, prefix="/api/experiments", tags=["experiments"])
+app.include_router(export.router, prefix="/api/export", tags=["export"])
+app.include_router(settings.router, prefix="/api/settings", tags=["settings"])
+
+frontend_dir = os.path.join(os.path.dirname(__file__), "..", "frontend")
+if os.path.exists(frontend_dir):
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+else:
+    @app.get("/")
+    def root():
+        return {"message": "Frontend not found, API is running"}
 
 if __name__ == "__main__":
-    demo, theme = build_app()
-    # share=False ensures local network only. Using queue for generators (streaming chat).
-    demo.launch(server_name="127.0.0.1", server_port=7860, share=False, theme=theme)
+    import uvicorn
+    uvicorn.run("app.main:app", host="127.0.0.1", port=8000)

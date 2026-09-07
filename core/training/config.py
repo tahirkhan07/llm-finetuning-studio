@@ -30,3 +30,9 @@ class TrainingConfig(BaseModel):
     output_dir: str = "./outputs"
     seed: int = 42
     precision: Literal["fp16", "bf16", "fp32"] = "bf16" if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else "fp16"
+    
+    # Validation & Early Stopping Config
+    eval_steps: int = 10
+    save_steps: int = 10
+    early_stopping: bool = True
+    early_stopping_patience: int = 3

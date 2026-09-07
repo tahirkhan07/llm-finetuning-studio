@@ -7,11 +7,15 @@ class ValidationReport(BaseModel):
     valid_samples: int
     invalid_samples: int
     duplicate_samples: int
+    too_long_samples: int = 0
+    invalid_indices: List[int] = []
+    duplicate_indices: List[int] = []
+    too_long_indices: List[int] = []
     avg_tokens: float = 0.0
     max_tokens: int = 0
     errors: List[str] = []
 
-def validate_dataset(dataset: Dataset, tokenizer: Any = None) -> ValidationReport:
+def validate_dataset(dataset: Dataset, tokenizer: Any = None, max_length: int = 2048) -> ValidationReport:
     """
     Validates a canonical dataset (with 'messages' column).
     """
@@ -51,31 +55,45 @@ def validate_dataset(dataset: Dataset, tokenizer: Any = None) -> ValidationRepor
                 break
         
         if not is_valid:
+            report.invalid_indices.append(i)
             continue
             
         # Check duplicates
         # hash based on user + assistant content
-        content_str = "".join([m["content"] for m in messages])
+        content_str = "".join([m.get("content", "") for m in messages])
         row_hash = hash(content_str)
         if row_hash in seen_hashes:
             report.duplicate_samples += 1
-            # We don't necessarily count duplicates as invalid, but let's track them
+            report.duplicate_indices.append(i)
+            continue
+            
         seen_hashes.add(row_hash)
         
-        valid_count += 1
-        
-        # Optional: compute token lengths if tokenizer provided
+        # Check token lengths if tokenizer provided
+        is_too_long = False
         if tokenizer:
             try:
-                # Approximate token length (applying chat template if it exists)
                 if hasattr(tokenizer, "apply_chat_template"):
                     tokens = tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=False)
-                    token_lengths.append(len(tokens))
+                    token_len = len(tokens)
                 else:
                     tokens = tokenizer.encode(content_str)
-                    token_lengths.append(len(tokens))
-            except Exception:
+                    token_len = len(tokens)
+                    
+                token_lengths.append(token_len)
+                
+                if token_len > max_length:
+                    report.too_long_samples += 1
+                    report.too_long_indices.append(i)
+                    errors.append(f"Row {i} exceeds max length ({token_len} > {max_length} tokens).")
+                    is_too_long = True
+            except Exception as e:
                 pass
+                
+        if is_too_long:
+            continue
+            
+        valid_count += 1
 
     report.valid_samples = valid_count
     report.invalid_samples = report.total_samples - valid_count

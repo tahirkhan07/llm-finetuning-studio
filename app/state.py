@@ -12,6 +12,7 @@ class AppState:
         
         # Models
         self.model_id: str = None
+        self.model_params_billions: float = None
         self.model = None
         self.tokenizer = None
         self.is_4bit: bool = True

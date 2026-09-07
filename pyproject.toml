@@ -23,6 +23,10 @@ dependencies = [
     "rouge_score",
     "nltk",
     "bert-score>=0.3.13",
+    "fastapi>=0.141.1",
+    "uvicorn[standard]>=0.52.4",
+    "google-genai>=2.22.0",
+    "python-dotenv>=1.2.3",
 ]
 
 [project.optional-dependencies]

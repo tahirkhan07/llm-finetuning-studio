@@ -45,6 +45,27 @@ This project uses [`uv`](https://docs.astral.sh/uv/) for fast and reliable Pytho
 4. **Access the UI**:
    Open your web browser and navigate to [http://127.0.0.1:7860](http://127.0.0.1:7860).
 
+## 📊 Evaluation
+
+This is where your project can become significantly stronger.
+
+Don't make evaluation just:
+```text
+loss = 1.2
+perplexity = 8.4
+```
+
+Add base vs fine-tuned evaluation across multiple dimensions:
+
+| Metric | Base | Fine-tuned |
+| :--- | :--- | :--- |
+| Perplexity | X | Y |
+| ROUGE | X | Y |
+| BLEU | X | Y |
+| Response latency | X | Y |
+| Tokens/sec | X | Y |
+| Task accuracy | X | Y |
+
 ## 🧪 Testing
 
 To run the unit and integration tests:

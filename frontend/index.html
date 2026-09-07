@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Fine-Tuning Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav id="topbar">
+        <div class="logo-container">
+            <img src="/logo.png" alt="LLM Fine-Tuning Studio Logo" class="top-logo">
+        </div>
+        <div class="nav-links">
+            <button class="nav-btn active" onclick="showTab('model')">1. Model</button>
+            <button class="nav-btn" onclick="showTab('dataset')">2. Dataset</button>
+            <button class="nav-btn" onclick="showTab('hardware')">3. Hardware</button>
+            <button class="nav-btn" onclick="showTab('training')">4. Training</button>
+            <button class="nav-btn" onclick="showTab('evaluation')">5. Evaluation</button>
+            <button class="nav-btn" onclick="showTab('inference')">6. Inference</button>
+            <button class="nav-btn" onclick="showTab('export')">7. Export</button>
+            <button class="nav-btn" onclick="showTab('experiments')">8. Adapters</button>
+        </div>
+        <div class="nav-actions">
+            <button class="nav-btn icon-btn" onclick="showTab('settings')" style="display:flex; align-items:center; gap:5px;">⚙️ Settings</button>
+        </div>
+    </nav>
+    <div id="content">
+        <!-- Model Tab -->
+        <div id="tab-model" class="tab-content active">
+            <div class="panel">
+                <h3>Select & Inspect Base Model</h3>
+                <div class="form-group">
+                    <label>HuggingFace Model ID or Local Path</label>
+                    <select id="model-select" onchange="toggleCustomModel()">
+                        <option value="Qwen/Qwen2.5-0.5B-Instruct">Qwen/Qwen2.5-0.5B-Instruct</option>
+                        <option value="Qwen/Qwen2.5-1.5B-Instruct">Qwen/Qwen2.5-1.5B-Instruct</option>
+                        <option value="meta-llama/Llama-3.2-1B">meta-llama/Llama-3.2-1B</option>
+                        <option value="google/gemma-2-2b-it">google/gemma-2-2b-it</option>
+                        <option value="mistralai/Mistral-7B-Instruct-v0.2">mistralai/Mistral-7B-Instruct-v0.2</option>
+                        <option value="custom">Other (Custom Model...)</option>
+                    </select>
+                    <input type="text" id="model-id-custom" placeholder="e.g. username/custom-model" style="display:none; margin-top:10px;">
+                </div>
+                <div class="form-group">
+                    <label>Load Precision</label>
+                    <select id="model-quant">
+                        <option value="4-bit (QLoRA)">4-bit (QLoRA)</option>
+                        <option value="8-bit">8-bit</option>
+                        <option value="16-bit (LoRA)">16-bit (LoRA)</option>
+                    </select>
+                </div>
+                <button class="btn" id="btn-load-model" onclick="loadModel()">
+                    <span class="loader"></span> Load Model
+                </button>
+                <div id="model-status" style="margin-top: 15px; color: var(--success);"></div>
+                <div id="model-details" style="margin-top: 15px;"></div>
+            </div>
+        </div>
+
+        <!-- Dataset Tab -->
+        <div id="tab-dataset" class="tab-content">
+            <div class="panel">
+                <h3>Ingest Dataset</h3>
+                <div class="form-group">
+                    <label>Dataset Source (HF ID or path)</label>
+                    <input type="text" id="dataset-source" placeholder="tatsu-lab/alpaca">
+                </div>
+                <button class="btn" id="btn-load-ds" onclick="loadDataset()">
+                    <span class="loader"></span> Load Dataset
+                </button>
+                <div id="ds-load-status" style="margin-top: 15px;"></div>
+                
+                <hr style="border-color: var(--border); margin: 20px 0;">
+                
+                <h3>Map Columns</h3>
+                <div class="form-group">
+                    <label>Instruction Column</label>
+                    <select id="ds-instr"><option value="">Load dataset first...</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Input Column</label>
+                    <select id="ds-inp"><option value="">Load dataset first...</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Output Column</label>
+                    <select id="ds-out"><option value="">Load dataset first...</option></select>
+                </div>
+                <div class="form-group">
+                    <label>System Prompt (optional)</label>
+                    <input type="text" id="ds-sys" value="You are a helpful AI assistant.">
+                </div>
+                <button class="btn btn-success" id="btn-map-ds" onclick="mapDataset()">
+                    <span class="loader"></span> Map & Validate
+                </button>
+                <div id="ds-map-status" style="margin-top: 15px;"></div>
+            </div>
+        </div>
+
+        <!-- Hardware Tab -->
+        <div id="tab-hardware" class="tab-content">
+            <div class="panel">
+                <h3>Hardware Diagnostics</h3>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn" id="btn-hw" onclick="detectHardware()">Detect Hardware</button>
+                    <button class="btn" style="background:var(--sidebar-bg);" onclick="recommendConfig()">Get Recommended Config</button>
+                </div>
+                <div id="hw-status" class="hw-grid" style="margin-top:20px;"></div>
+            </div>
+        </div>
+
+        <!-- Training Tab -->
+        <div id="tab-training" class="tab-content">
+            <div class="panel">
+                <h3>Training Configuration</h3>
+                <div class="form-group"><label>Method</label><select id="tr-method"><option value="qlora">QLoRA</option><option value="sft">SFT</option></select></div>
+                <div style="display:flex; gap:15px; margin-bottom:15px;">
+                    <div style="flex:1;"><label>Train Split (%)</label><input type="number" id="tr-split-train" value="90" min="0" max="100"></div>
+                    <div style="flex:1;"><label>Validation Split (%)</label><input type="number" id="tr-split-val" value="5" min="0" max="100"></div>
+                    <div style="flex:1;"><label title="Held out completely until final evaluation">Test Split (%)</label><input type="number" id="tr-split-test" value="5" min="0" max="100"></div>
+                </div>
+                <div style="display:flex; gap:15px; margin-bottom:15px;">
+                    <div style="flex:1;"><label>Epochs</label><input type="number" id="tr-ep" value="1"></div>
+                    <div style="flex:1;"><label title="Limits only the train split. 0 means use all available.">Max Training Samples (0 = all)</label><input type="number" id="tr-max-s" value="0"></div>
+                </div>
+                <div style="display:flex; gap:15px; margin-bottom:15px;">
+                    <div style="flex:1;"><label>Batch Size</label><input type="number" id="tr-bs" value="2"></div>
+                    <div style="flex:1;"><label>Grad Accumulation</label><input type="number" id="tr-ga" value="4"></div>
+                </div>
+                <div style="display:flex; gap:15px; margin-bottom:15px;">
+                    <div style="flex:1;"><label>Learning Rate</label><input type="text" id="tr-lr" value="0.0002"></div>
+                    <div style="flex:1;"><label>LoRA Rank (r)</label><input type="number" id="tr-lora" value="16"></div>
+                </div>
+                <div style="display:flex; gap:15px; margin-bottom:15px;">
+                    <div style="flex:1;"><label>Max Sequence Length</label><input type="number" id="tr-msl" value="1024"></div>
+                    <div style="flex:1;">
+                        <label style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
+                            <input type="checkbox" id="tr-early-stop" checked onchange="document.getElementById('tr-patience-container').style.opacity = this.checked ? '1' : '0.5'; document.getElementById('tr-patience').disabled = !this.checked;">
+                            Enable Early Stopping
+                        </label>
+                        <div id="tr-patience-container" style="display:flex; align-items:center; gap:10px;">
+                            <label style="margin:0; font-size:0.9em; color:var(--text-muted);" title="Number of consecutive evaluations without improvement">Patience:</label>
+                            <input type="number" id="tr-patience" value="3" style="width:60px; padding:4px;">
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:15px; margin-bottom:20px; padding:10px; background:rgba(0,0,0,0.2); border-radius:6px; border:1px solid var(--border);">
+                    <div style="flex:1;"><label title="Evaluate validation loss every X steps">Eval Frequency (steps)</label><input type="number" id="tr-eval-steps" value="10"></div>
+                    <div style="flex:1;"><label title="Save checkpoint every X steps">Save Frequency (steps)</label><input type="number" id="tr-save-steps" value="10"></div>
+                </div>
+                <button class="btn btn-success" id="btn-train" onclick="startTraining()">🚀 Start Training</button>
+                <div id="tr-status" style="margin-top:15px; font-weight:bold; font-size:1.1rem;"></div>
+                
+                <h4 style="margin-top: 20px;">Live Logs</h4>
+                <pre id="tr-logs" style="margin-top:10px; padding:10px; height:200px; overflow-y:auto; background:rgba(0,0,0,0.3); border-radius:6px;">Waiting to start...</pre>
+            </div>
+        </div>
+
+        <!-- Evaluation Tab -->
+        <div id="tab-evaluation" class="tab-content">
+            <div class="panel">
+                <h3>Evaluate Fine-tuned Model</h3>
+                <button class="btn" id="btn-eval" onclick="runEval()"><span class="loader"></span> Run Evaluation</button>
+                <div id="eval-results" style="margin-top:15px;"></div>
+            </div>
+        </div>
+
+        <!-- Inference Tab -->
+        <div id="tab-inference" class="tab-content">
+            <div class="panel">
+                <h3>Interactive Chat</h3>
+                <div class="form-group">
+                    <label>Adapter Path</label>
+                    <div style="display:flex; gap:10px;">
+                        <select id="inf-adapter" style="flex:1;">
+                            <option value="">Base Model</option>
+                        </select>
+                        <button class="btn" onclick="refreshAdapters()">🔄</button>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn" id="btn-inf-load" onclick="loadInference()"><span class="loader"></span> Load Model</button>
+                    <button class="btn" style="background:var(--danger);" onclick="deleteAdapter()">🗑️ Delete Selected</button>
+                </div>
+                <div id="inf-status" style="margin-top: 10px; color: var(--success);"></div>
+                
+                <hr style="border-color: var(--border); margin: 20px 0;">
+                
+                <div style="display:flex; gap:20px; margin-bottom:15px;">
+                    <div style="flex:1;">
+                        <label>Temperature (<span id="temp-val">0.7</span>)</label>
+                        <input type="range" id="inf-temp" min="0" max="2" step="0.1" value="0.7" oninput="document.getElementById('temp-val').innerText=this.value" style="width:100%;">
+                    </div>
+                    <div style="flex:1;">
+                        <label>Max New Tokens</label>
+                        <input type="number" id="inf-tokens" value="256">
+                    </div>
+                    <div style="flex:1; display:flex; align-items:flex-end; padding-bottom:5px;">
+                        <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+                            <input type="checkbox" id="inf-guardrails"> Enable Safety Guardrails
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="chat-window" id="chat-window"></div>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="chat-input" placeholder="Type a message..." style="flex:1;" onkeypress="if(event.key === 'Enter') sendChat()">
+                    <button class="btn" onclick="sendChat()">Send</button>
+                    <button class="btn" style="background:var(--sidebar-bg);" onclick="clearChat()">Clear</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Export Tab -->
+        <div id="tab-export" class="tab-content">
+            <div class="panel">
+                <h3>Merge to Full Model</h3>
+                <div class="form-group">
+                    <label>Adapter Path</label>
+                    <div style="display:flex; gap:10px;">
+                        <select id="exp-adapter" style="flex:1;">
+                            <option value="">Select Adapter</option>
+                        </select>
+                        <button class="btn" onclick="refreshAdapters()">🔄</button>
+                    </div>
+                </div>
+                <button class="btn" id="btn-merge" onclick="mergeModel()"><span class="loader"></span> Merge Model</button>
+                <div id="exp-status" style="margin-top: 15px;"></div>
+                
+                <hr style="border-color: var(--border); margin: 20px 0;">
+                
+                <h3>Convert to GGUF</h3>
+                <div class="form-group">
+                    <label>Merged Model Directory</label>
+                    <input type="text" id="exp-gguf-dir">
+                </div>
+                <div class="form-group">
+                    <label>Quantization Type</label>
+                    <select id="exp-gguf-quant">
+                        <option value="Q4_K_M">Q4_K_M (Recommended)</option>
+                        <option value="Q8_0">Q8_0</option>
+                        <option value="F16">F16</option>
+                    </select>
+                </div>
+                <button class="btn" id="btn-gguf" onclick="convertGguf()"><span class="loader"></span> Convert to GGUF</button>
+                <div id="gguf-status" style="margin-top: 15px;"></div>
+                
+                <hr style="border-color: var(--border); margin: 20px 0;">
+                
+                <h3>Push to Hub</h3>
+                <div class="form-group">
+                    <label>Merged Model Directory</label>
+                    <input type="text" id="exp-push-dir">
+                </div>
+                <div class="form-group">
+                    <label>HuggingFace Repo ID</label>
+                    <input type="text" id="exp-push-repo" placeholder="username/my-model">
+                </div>
+                <button class="btn" id="btn-push" onclick="pushToHub()"><span class="loader"></span> Push to Hub</button>
+                <div id="push-status" style="margin-top: 15px;"></div>
+            </div>
+        </div>
+
+        <!-- Experiments Tab -->
+        <div id="tab-experiments" class="tab-content">
+            <div class="panel">
+                <h3>Adapters Tracking Database</h3>
+                <button class="btn" onclick="loadExperiments()">🔄 Refresh Database</button>
+                <button class="btn btn-success" style="background: var(--danger);" onclick="deleteAllExperiments()">🗑️ Delete All Adapters</button>
+                <div id="exp-table-container" style="margin-top: 15px;"></div>
+                
+                <hr style="border-color: var(--border); margin: 20px 0;">
+                
+                <h3>Compare Adapters</h3>
+                <div style="display:flex; gap:10px; margin-bottom:15px;">
+                    <select id="comp-exp1" style="flex:1;"><option value="">Adapter A</option></select>
+                    <select id="comp-exp2" style="flex:1;"><option value="">Adapter B</option></select>
+                </div>
+                <button class="btn" onclick="compareExperiments()">Compare</button>
+                <div id="comp-results" style="margin-top: 15px;"></div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="tab-settings" class="tab-content">
+            <div class="panel">
+                <h3>HuggingFace Authentication</h3>
+                <p style="color: var(--text-muted); margin-bottom: 15px;">Required for downloading gated models (like Llama-3) and pushing trained models to the Hub.</p>
+                <div class="form-group">
+                    <label>HuggingFace User Access Token (Write permission)</label>
+                    <input type="text" id="hf-token" placeholder="hf_xxxxxxxxxxxxxxxxxxx">
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn" id="btn-login" onclick="hfLogin()"><span class="loader"></span> Login</button>
+                    <button class="btn" style="background:var(--danger);" id="btn-logout" onclick="hfLogout()"><span class="loader"></span> Logout</button>
+                    <button class="btn" style="background:var(--sidebar-bg);" onclick="hfCheck()">Check Status</button>
+                </div>
+                <div id="hf-status" style="margin-top: 15px;"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

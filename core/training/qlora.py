@@ -35,6 +35,11 @@ class QLoRAEngine(TrainingEngine):
     def train(self) -> None:
         output_dir = os.path.join(self.cfg.output_dir, self.experiment_id)
 
+        train_ds = self.dataset["train"] if isinstance(self.dataset, dict) and "train" in self.dataset else self.dataset
+        eval_ds = self.dataset.get("validation") if isinstance(self.dataset, dict) else None
+        
+        has_eval = eval_ds is not None and len(eval_ds) > 0
+        
         sft_config = SFTConfig(
             output_dir=output_dir,
             per_device_train_batch_size=self.cfg.per_device_batch_size,
@@ -46,11 +51,21 @@ class QLoRAEngine(TrainingEngine):
             fp16=(self.cfg.precision == "fp16"),
             logging_steps=10,
             report_to="none",  # Disable wandb for local MVP
+            
+            # Evaluation & Best Checkpoint strategy
+            eval_strategy="steps" if has_eval else "no",
+            eval_steps=self.cfg.eval_steps if has_eval else None,
+            save_strategy="steps" if has_eval else "no",
+            save_steps=self.cfg.save_steps if has_eval else None,
+            load_best_model_at_end=True if has_eval else False,
+            metric_for_best_model="eval_loss" if has_eval else None,
+            greater_is_better=False if has_eval else None,
         )
 
-        # Handle train/val split if exists
-        train_ds = self.dataset["train"] if isinstance(self.dataset, dict) and "train" in self.dataset else self.dataset
-        eval_ds = self.dataset.get("validation") if isinstance(self.dataset, dict) else None
+        from transformers import EarlyStoppingCallback
+        callbacks = [ProgressCallback(self.log_path)]
+        if has_eval and self.cfg.early_stopping:
+            callbacks.append(EarlyStoppingCallback(early_stopping_patience=self.cfg.early_stopping_patience))
 
         self.trainer = SFTTrainer(
             model=self.model,
@@ -58,7 +73,7 @@ class QLoRAEngine(TrainingEngine):
             train_dataset=train_ds,
             eval_dataset=eval_ds,
             args=sft_config,
-            callbacks=[ProgressCallback(self.log_path)],
+            callbacks=callbacks,
         )
 
         try:

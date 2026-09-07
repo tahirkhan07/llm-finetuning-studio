@@ -35,3 +35,9 @@ ENV/
 outputs/
 experiments/
 finetunestudio.md
+
+# Environment secrets
+.env
+
+# Old test venv
+venv_test/

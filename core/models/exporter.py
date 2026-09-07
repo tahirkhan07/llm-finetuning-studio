@@ -336,7 +336,7 @@ def convert_to_gguf(
         converter_script,
         merged_model_dir,
         "--outfile", output_path,
-        "--outtype", quant_type.lower().replace("_", "-") if quant_type != "F16" else "f16",
+        "--outtype", quant_type.lower(),
     ]
 
     # For quantized types, the convert script uses f16 as base
@@ -369,17 +369,20 @@ def convert_to_gguf(
             bufsize=1,
         )
 
+        error_logs = []
         for line in iter(process.stdout.readline, ""):
             line = line.strip()
             if line:
                 _log(progress_fn, f"  {line}")
+                error_logs.append(line)
 
         process.wait()
 
         if process.returncode != 0:
+            log_output = "\n".join(error_logs[-20:])  # Keep last 20 lines for context
             raise RuntimeError(
-                f"GGUF conversion failed with exit code {process.returncode}. "
-                f"Check the output above for details."
+                f"GGUF conversion failed with exit code {process.returncode}.\n"
+                f"--- Error Output ---\n{log_output}"
             )
 
     except FileNotFoundError:

@@ -18,9 +18,14 @@ class ProgressCallback(TrainerCallback):
             step_data = {
                 "step": state.global_step,
                 "epoch": state.epoch,
-                "loss": logs.get("loss", None),
-                "learning_rate": logs.get("learning_rate", None)
             }
+            if "loss" in logs:
+                step_data["loss"] = logs["loss"]
+            if "learning_rate" in logs:
+                step_data["learning_rate"] = logs["learning_rate"]
+            if "eval_loss" in logs:
+                step_data["eval_loss"] = logs["eval_loss"]
+                
             self.history.append(step_data)
             
             with open(self.log_path, 'w') as f:
