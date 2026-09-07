@@ -1,154 +1,213 @@
 # LLM Fine-Tuning Studio
 
-A professional, end-to-end platform for fine-tuning, evaluating, and serving Large Language Models. Built with **FastAPI**, **PyTorch**, Hugging Face `transformers`, `peft`, and `trl`.
-
-Provides a complete web-based graphical interface to perform **QLoRA** and **LoRA** supervised fine-tuning directly on your local hardware — no cloud required.
+A local, end-to-end platform for fine-tuning, evaluating, and serving LLMs using LoRA and QLoRA.
+Built with FastAPI, PyTorch, Hugging Face Transformers, PEFT, and TRL.
 
 ## ✨ Features
 
 ### 🧠 Model Management
-- **Any Model Support** — Paste any Hugging Face model ID: works with Qwen, Llama, Gemma, Mistral, Phi, and thousands more.
-- **Automatic Prompt Formatting** — Each model's `chat_template` is detected and applied automatically.
-- **LoRA Target Detection** — Automatically identifies optimal LoRA target modules for each architecture.
+- Hugging Face and local model support
+- Automatic chat-template detection
+- Automatic LoRA target-module detection
+- Adapter management
 
 ### 📊 Dataset Pipeline
-- **Flexible Loading** — Load datasets from Hugging Face Hub, CSV, or JSONL files.
-- **Column Mapping** — Map any column structure to a canonical conversation format (instruction, input, output, system prompt).
-- **Configurable Train/Val/Test Splits** — Set custom split ratios (e.g. 80/10/10) directly from the UI.
-- **Max Training Samples** — Limit training data independently without affecting validation or test set sizes.
-- **Deduplication** — Automatic exact-duplicate detection before splitting to prevent data leakage.
+- Hugging Face, CSV, and JSONL datasets
+- Flexible column mapping
+- Configurable Train / Validation / Test splits
+- Max Training Samples
+- Exact duplicate removal
+- Context-length validation
 
-### 🏋️ Training Engine
-- **QLoRA & LoRA** — Supports both 4-bit quantized and full-precision fine-tuning.
-- **Live Training Logs** — Real-time streaming of training loss, eval loss, learning rate, and epoch.
-- **Validation Tracking** — Passes a held-out validation set to `SFTTrainer` for periodic `eval_loss` monitoring.
-- **Best Checkpoint Selection** — Automatically loads the checkpoint with the lowest validation loss (`load_best_model_at_end=True`, `metric_for_best_model="eval_loss"`, `greater_is_better=False`).
-- **Early Stopping** — Configurable patience-based early stopping to prevent overfitting.
-- **Configurable Eval/Save Frequency** — Set evaluation and checkpoint intervals (in steps) from the UI.
+### 🏋️ Fine-Tuning
+- LoRA and QLoRA
+- 4-bit quantization
+- GPU and VRAM detection
+- Gradient accumulation
+- Live training and validation loss
+- Best-checkpoint selection
+- Early stopping
+- Configurable evaluation/checkpoint frequency
 
-### 📈 Evaluation (Test Set Only)
-The test set is **never** used during training. It is reserved exclusively for final evaluation.
+### 📈 Evaluation
+Evaluation is performed exclusively on the held-out test set.
+The base model and fine-tuned model are evaluated on the same test samples using identical generation settings.
 
-| Metric | Description |
-|---|---|
-| Perplexity | Token-weighted cross-entropy loss |
-| ROUGE-L | Longest common subsequence overlap |
-| BLEU | N-gram precision |
-| BERTScore | Semantic similarity via embeddings |
-| Task Accuracy (F1) | Token-overlap F1 score |
-| Response Latency | Average inference time per sample |
+| Metric | Purpose |
+|--------|---------|
+| Perplexity | Language-model quality |
+| ROUGE-L | Text overlap |
+| BLEU | N-gram overlap |
+| BERTScore | Semantic similarity |
+| Token F1 | Answer-level token overlap |
+| LLM Correctness | Correctness score (1–5) |
+| LLM Relevance | Relevance score (1–5) |
+| LLM Completeness | Completeness score (1–5) |
+| Latency | Response speed |
 | Tokens/sec | Generation throughput |
-| LLM Correctness | Gemini-judged factual accuracy (1–5) |
-| LLM Relevance | Gemini-judged prompt adherence (1–5) |
-| LLM Completeness | Gemini-judged answer completeness (1–5) |
 
-All metrics are computed for both the **base model** and the **fine-tuned model** side-by-side.
+Results are shown Base vs Fine-tuned to measure the impact of fine-tuning.
 
 ### 💬 Inference
-- **Interactive Chat** — Multi-turn conversation with your fine-tuned model.
-- **Adapter Switching** — Load any trained adapter or use the base model.
-- **Streaming Output** — Token-by-token streaming for responsive chat.
-- **Safety Guardrails** — Optional content filtering.
+- Interactive multi-turn chat
+- Streaming generation
+- Adapter switching
+- Optional safety guardrails
 
-### 📦 Export & Publishing
-- **Merge & Download** — Merge LoRA adapters into the base model and download as a ZIP.
-- **GGUF Conversion** — Convert merged models to GGUF format for llama.cpp / Ollama.
-- **Push to Hub** — Publish models directly to Hugging Face Hub.
+### 📦 Export
+- Merge LoRA adapters
+- Export trained models
+- GGUF conversion
+- Hugging Face Hub publishing
 
 ### 🔬 Experiment Tracking
-- Logs all training runs with full configuration, final loss, and adapter paths.
-- Compare any two experiments side-by-side.
-- Download individual adapter weights.
+- Training configuration and metrics
+- Checkpoint and adapter tracking
+- Experiment comparison
+- Adapter downloads
 
 ## 🏗️ Architecture
 
+```text
+Dataset 
+  ↓ 
+Validation / Cleaning 
+  ↓ 
+Deduplication 
+  ↓ 
+Train / Validation / Test Split 
+  ↓ 
+Max Training Samples 
+  ↓ 
+LoRA / QLoRA Training 
+  ├── Train → Update weights 
+  └── Validation → Monitor / Select checkpoint 
+  ↓ 
+Best Checkpoint 
+  ↓ 
+Held-Out Test Set 
+  ↓ 
+Base vs Fine-Tuned 
+  ↓ 
+Inference
 ```
-Raw Dataset
-    ↓
-Cleaning / Validation
-    ↓
-Deduplication
-    ↓
-Train / Val / Test Split
-    ↓
-Max Training Samples (train only)
-    ↓
-       ┌───────────────┐
-       │   SFT/QLoRA   │
-       │               │
-       │ Train → learn │
-       │ Val → monitor │
-       └───────────────┘
-              ↓
-       Best Checkpoint
-              ↓
-       Final Test Set
-              ↓
-       Base vs Fine-tuned
+
+## 🛠️ Tech Stack
+- **Backend:** FastAPI
+- **Deep Learning:** PyTorch
+- **Models:** Hugging Face Transformers
+- **Fine-Tuning:** PEFT + TRL
+- **Quantization:** BitsAndBytes
+- **Datasets:** Hugging Face Datasets
+- **Evaluation:** ROUGE, BLEU, BERTScore, Token F1
+- **LLM Judge:** Gemini
+- **Frontend:** HTML / CSS / JavaScript
+- **Package Management:** uv
+- **GPU:** CUDA
+
+## 💻 Requirements
+- Python >= 3.10
+- NVIDIA GPU recommended
+- CUDA >= 11.8 for GPU training
+- 8 GB+ VRAM recommended for smaller models with QLoRA
+- Git
+- [uv](https://docs.astral.sh/uv/)
+
+## 🚀 Setup & Run
+
+### 1. Clone Repository
+```bash
+git clone https://github.com/tahirkhan07/llm-finetuning-studio.git 
+cd llm-finetuning-studio
 ```
 
-## 🛠️ Requirements
-
-- **Python:** ≥ 3.10
-- **CUDA:** ≥ 11.8 (for GPU training)
-- **NVIDIA GPU:** 8 GB+ VRAM recommended (for 1–3B models in 4-bit)
-
-## 📦 Setup & Installation
-
-This project uses [`uv`](https://docs.astral.sh/uv/) for dependency management.
-
-1. **Install `uv`** (if not already installed):
-   ```bash
-   curl -LsSf https://astral.sh/uv/install.sh | sh
-   ```
-
-2. **Clone the repository**:
-   ```bash
-   git clone https://github.com/tahirkhan07/llm-finetuning-studio.git
-   cd llm-finetuning-studio
-   ```
-
-3. **Configure environment** (optional, for LLM-as-a-judge):
-   ```bash
-   cp .env.example .env
-   # Edit .env and add your Gemini API key
-   ```
-
-4. **Launch the Studio**:
-   ```bash
-   uv run python app/main.py
-   ```
-   > On the first run, `uv` will automatically create a `.venv`, resolve all dependencies, and download PyTorch + CUDA binaries. This may take a few minutes.
-
-5. **Open the UI**:
-   Navigate to [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
-
-## 📁 Project Structure
-
+### 2. Install Dependencies
+Install all project dependencies using uv:
+```bash
+uv sync
 ```
-├── app/                    # FastAPI application
-│   ├── main.py             # Server entrypoint
-│   ├── state.py            # Global application state
-│   └── api/routers/        # API route handlers
-├── core/                   # Core ML logic
-│   ├── datasets/           # Loading, mapping, splitting, deduplication
-│   ├── evaluation/         # Metrics (perplexity, ROUGE, BLEU, LLM-judge)
-│   ├── hardware/           # GPU detection & config recommendation
-│   ├── inference/          # Model loading & text generation
-│   ├── models/             # Model inspection, adapters, export
-│   └── training/           # SFT & QLoRA engines, callbacks, config
-├── frontend/               # Web UI (HTML + CSS + JS)
-├── tests/                  # Unit & integration tests
-├── pyproject.toml          # Project dependencies
-└── .env                    # Environment variables (not committed)
+
+### 3. Configure Environment Variables
+Copy the example environment file:
+```bash
+cp .env.example .env
+```
+Update `.env` with the required configuration.
+Example:
+```
+GEMINI_API_KEY=your_api_key
+```
+*The Gemini API key is required only for LLM-as-a-Judge evaluation.*
+
+### 4. Verify GPU
+Check NVIDIA GPU availability:
+```bash
+nvidia-smi
+```
+Verify PyTorch CUDA support:
+```bash
+uv run python -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+```
+
+### 5. Start the Application
+```bash
+uv run python app/main.py
+```
+Open the application in your browser:
+http://127.0.0.1:8000
+
+## 🔄 Typical Workflow
+```text
+Select Model 
+  ↓ 
+Upload Dataset 
+  ↓ 
+Map Dataset Columns 
+  ↓ 
+Configure Train / Val / Test 
+  ↓ 
+Configure LoRA / QLoRA 
+  ↓ 
+Start Training 
+  ↓ 
+Monitor Train / Validation Loss 
+  ↓ 
+Best Checkpoint 
+  ↓ 
+Evaluate Held-Out Test Set 
+  ↓ 
+Base vs Fine-Tuned Comparison 
+  ↓ 
+Inference 
+  ↓ 
+Export / Publish
 ```
 
 ## 🧪 Testing
-
+Run the test suite:
 ```bash
 uv run --with pytest --with pytest-mock pytest tests/
 ```
 
-## ⚠️ Disclaimer
+## 📁 Project Structure
+```text
+llm-finetuning-studio/
+├── app/
+│   ├── main.py
+│   ├── state.py
+│   └── api/
+│       └── routers/
+│   ├── core/
+│   ├── datasets/       # Loading, mapping, validation, splitting
+│   ├── evaluation/     # Evaluation metrics
+│   ├── hardware/       # GPU detection and planning
+│   ├── inference/      # Model loading and generation
+│   ├── models/         # Model inspection and export
+│   └── training/       # LoRA / QLoRA / SFT
+├── frontend/           # Web interface
+├── tests/              # Tests
+├── pyproject.toml
+├── .env.example
+└── README.md
+```
 
-This project is intended for research and educational purposes. Always review the license and usage conditions of the base models and datasets you use.
