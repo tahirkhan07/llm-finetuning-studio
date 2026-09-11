@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException
 import asyncio
 from app.state import state
 from core.evaluation.metrics import calculate_perplexity, calculate_metrics
-from core.datasets.splitter import split_dataset
 from core.inference.loader import InferenceLoader
 from core.experiments.tracker import ExperimentTracker
 

@@ -35,6 +35,7 @@ ENV/
 outputs/
 experiments/
 finetunestudio.md
+interview.md
 
 # Environment secrets
 .env
